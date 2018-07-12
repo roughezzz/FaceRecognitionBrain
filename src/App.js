@@ -25,6 +25,7 @@ const particlesOptions = {
     }
   }
 }
+
 class App extends Component {
   constructor(){
     super();
@@ -33,9 +34,26 @@ class App extends Component {
       imageUrl: '',
       box: {},
       route: 'signin',
-      isSignedIn: false
+      isSignedIn: false,
+      user: {
+        id: '',
+        name: '',
+        email: '',
+        entries: 0,
+        joined: ''
+      }
 
     }
+  }
+
+  loadUser = (data) => {
+    this.setState({user: {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          entries: data.entries,
+          joined: data.joined
+        }})
   }
 
   calculateFaceLocation = (data) => {
@@ -66,7 +84,21 @@ class App extends Component {
     app.models.predict(
         Clarifai.FACE_DETECT_MODEL, 
         this.state.input)
-    .then(response => this.displayFaceBox(this.calculateFaceLocation(response)))
+    .then(response => {
+        if (response) {
+          fetch('http://localhost:3000/image',{
+            method: 'put',
+            headers: {'Content-Type' : 'application/json'},
+            body: JSON.stringify({
+              id: this.state.user.id
+            })
+          })
+          .then(response => response.json())
+          .then(count => {
+            this.setState(Object.assign(this.state.user, {entries: count}))
+          })
+        }
+        this.displayFaceBox(this.calculateFaceLocation(response))})
     .catch(err => console.log(err));
   }
 
@@ -99,7 +131,7 @@ class App extends Component {
           : (
               this.state.route === 'signin'
               ?<Signin onRouteChange={this.onRouteChange}/>
-              :<Register onRouteChange={this.onRouteChange}/>
+              :<Register loadUser={this.loaduser} onRouteChange={this.onRouteChange}/>
             )
         }
       </div>
